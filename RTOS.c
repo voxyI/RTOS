@@ -27,6 +27,21 @@ TCB volatile *next_tcb = NULL;
 TCB volatile *current_tcb = NULL;
 
 
+/**
+ * @brief initializes a thread and configures a "fake" stack for the process"
+ * 
+ * @param tcb
+ *      A TCB struct for the function to create a thread out of
+ * 
+ * @param stack_array
+ *      The stack to be edited
+ * 
+ * @param stack_size
+ *      The size of the stack
+ * 
+ * @param task
+ *      The function to create a thread out of
+ */
 void OS_ThreadInit(TCB *tcb, uint32_t *stack_array, int stack_size, void (*task)(void)) {
     // 1. Initialize 'sp' to the END of the array (grows downward on ARM Cortex-M)
     uint32_t *sp = &stack_array[stack_size];
@@ -54,12 +69,24 @@ void OS_ThreadInit(TCB *tcb, uint32_t *stack_array, int stack_size, void (*task)
 }
 
 
+/**
+ * @brief
+ *      Handles the timer interrupts by setting a flag for PendSV so the context switch happens at a low priority.
+ * 
+ * Should not be explicitally called, only called through interrupts
+ */
 void SysTick_Handler(void) {
     next_tcb = current_tcb->next;
     SCB->ICSR |= (1UL<<28);
 }
 
 
+/**
+ * @brief
+ *      Handles the context swtiching between threads.
+ *      
+ * Should not be explicitally called, only called through interrupts
+ */
 __attribute__((naked)) void PendSV_Handler(void) {
     __asm volatile (
         "LDR R1, =current_tcb \n"     // Get address of current_tcb
